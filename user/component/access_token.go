@@ -80,7 +80,12 @@ func (c *accessTokenComponentImpl) Create(ctx context.Context, req *types.Create
 				return nil, fmt.Errorf("fail to create git user access token,error:%w", err)
 			}
 		} else {
-			tokenContent := c.genUnique()
+			var tokenContent string
+			if req.Token != "" {
+				tokenContent = req.Token
+			} else {
+				tokenContent = c.genUnique()
+			}
 			token = &database.AccessToken{
 				Name:        req.TokenName,
 				Token:       tokenContent,
@@ -93,7 +98,12 @@ func (c *accessTokenComponentImpl) Create(ctx context.Context, req *types.Create
 		token.UserID = user.ID
 		token.Application = req.Application
 	} else {
-		tokenValue := c.genUnique()
+		var tokenValue string
+		if req.Token != "" {
+			tokenValue = req.Token
+		} else {
+			tokenValue = c.genUnique()
+		}
 		token = &database.AccessToken{
 			Name:        req.TokenName,
 			Token:       tokenValue,

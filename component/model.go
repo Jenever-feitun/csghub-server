@@ -1059,10 +1059,13 @@ func (c *modelComponentImpl) Deploy(ctx context.Context, deployReq types.DeployA
 
 	// choose image
 	var hardware types.HardWare
+	slog.Info("=========================Fetching resource from DB", "resource_id", req.ResourceID, "resources_str", resource.Resources)
 	err = json.Unmarshal([]byte(resource.Resources), &hardware)
 	if err != nil {
+		slog.Error("failed to unmarshal hardware resource", "resources_str", resource.Resources, "error", err)
 		return -1, errorx.InternalServerError(err, nil)
 	}
+	slog.Info("=========================Unmarshaled hardware object", "hardware_obj", hardware)
 
 	// only vllm and sglang support multi-host inference
 	if hardware.Replicas > 1 {

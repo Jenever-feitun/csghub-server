@@ -24,3 +24,5 @@ run_server_local.sh
 docs/swagger.json
 docs/swagger.yaml
 docs/docs.go
+
+/vendor

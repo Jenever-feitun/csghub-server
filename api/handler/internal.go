@@ -131,6 +131,7 @@ func (h *InternalHandler) SSHAllowed(ctx *gin.Context) {
 
 		resp, err := h.internal.SSHAllowed(ctx.Request.Context(), req)
 		if err != nil {
+			slog.ErrorContext(ctx.Request.Context(), "SSHAllowed failed", slog.Any("error", err), slog.Any("req", req))
 			httpbase.ServerError(ctx, err)
 			return
 		}
@@ -307,11 +308,14 @@ type Messages struct {
 }
 
 func getRepoInfoFronClonePath(clonePath string) (repoType types.RepositoryType, namespace, name string) {
-	repoWithoutSuffix := strings.TrimSuffix(clonePath, ".git")
-	repoWithoutPrefix := strings.TrimPrefix(repoWithoutSuffix, "/")
-	paths := strings.Split(repoWithoutPrefix, "/")
+	clonePath = strings.Trim(clonePath, "/")
+	paths := strings.Split(clonePath, "/")
+	if len(paths) < 3 {
+		slog.Error("invalid clone path", slog.String("path", clonePath))
+		return
+	}
 	repoType = types.RepositoryType(strings.TrimSuffix(paths[0], "s"))
 	namespace = paths[1]
-	name = paths[2]
+	name = strings.TrimSuffix(paths[2], ".git")
 	return
 }

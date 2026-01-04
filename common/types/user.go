@@ -130,6 +130,7 @@ type CreateUserTokenRequest struct {
 	// default to empty, means full permission
 	Permission string    `json:"permission,omitempty"`
 	ExpiredAt  time.Time `json:"expired_at"`
+	Token      string    `json:"token,omitempty"`
 }
 
 // CreateUserTokenRequest implements SensitiveRequestV2

@@ -2,7 +2,7 @@
 bin_dir = "/usr/local/bin"
 
 # Optional if socket_path is set. TCP address for Gitaly to listen on. This is insecure (unencrypted connection).
-listen_addr = "0.0.0.0:9999"
+listen_addr = "0.0.0.0:8075"
 
 [git]
 use_bundled_binaries = true
@@ -10,6 +10,15 @@ use_bundled_binaries = true
 [[git.config]]
 key = "http.sslVerify"
 value = "false"
+
+# 增加 LFS 相关配置
+[[git.config]]
+key = "lfs.basictransfersonly"
+value = "true"
+
+[[git.config]]
+key = "lfs.transfer.maxstandalonebodysize"
+value = "512m"
 
 # Optional. Authenticate Gitaly requests using a shared secret.
 # Gitaly rejects requests that do not contain the authentication token in their headers.

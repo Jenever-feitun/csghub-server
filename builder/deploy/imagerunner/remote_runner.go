@@ -50,7 +50,7 @@ func (h *RemoteRunner) Run(ctx context.Context, req *types.RunRequest) (*types.R
 	if err != nil {
 		return nil, err
 	}
-	slog.Debug("send request", slog.Any("body", req))
+	slog.Info("=========================send request to runner", slog.Any("body", req))
 	svcName := req.SvcName
 	u := fmt.Sprintf("%s/api/v1/service/%s/run", remote, svcName)
 	response, err := h.doRequest(ctx, http.MethodPost, u, req)

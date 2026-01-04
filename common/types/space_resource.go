@@ -11,6 +11,7 @@ const (
 	ResourceTypeGPGPU ResourceType = "gpgpu"
 	ResourceTypeMLU   ResourceType = "mlu"
 	ResourceTypeDCU   ResourceType = "dcu"
+	ResourceTypeTPU   ResourceType = "tpu"
 	PayModeFree       PayMode      = "free"
 	PayModeMinute     PayMode      = "minute"
 	PayModeMonth      PayMode      = "month"

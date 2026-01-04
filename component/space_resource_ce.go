@@ -42,7 +42,7 @@ func (c *spaceResourceComponentImpl) appendUserResources(ctx context.Context, cu
 
 func (c *spaceResourceComponentImpl) deployAvailable(deployType int, hardware types.HardWare) bool {
 	if deployType == types.FinetuneType {
-		if hardware.Gpu.Num == "" {
+		if hardware.Gpu.Num == "" && hardware.Tpu.Num == "" {
 			return false
 		}
 	}

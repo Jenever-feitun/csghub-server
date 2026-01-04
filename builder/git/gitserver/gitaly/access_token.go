@@ -9,12 +9,18 @@ import (
 )
 
 func (c *Client) CreateUserToken(req *types.CreateUserTokenRequest) (token *database.AccessToken, err error) {
+	var tokenValue string
+	if req.Token != "" {
+		tokenValue = req.Token
+	} else {
+		tokenValue = strings.ReplaceAll(uuid.NewString(), "-", "")
+	}
 	token = &database.AccessToken{
 		Name:        req.TokenName,
 		Permission:  req.Permission,
 		Application: req.Application,
 		ExpiredAt:   req.ExpiredAt,
-		Token:       strings.ReplaceAll(uuid.NewString(), "-", ""),
+		Token:       tokenValue,
 	}
 	return
 }

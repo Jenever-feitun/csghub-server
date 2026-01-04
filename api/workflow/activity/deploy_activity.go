@@ -543,10 +543,12 @@ func (a *DeployActivity) createDeployRequest(ctx context.Context, task *database
 	annotationMap[types.ResDeployID] = fmt.Sprintf("%v", deployInfo.ID)
 
 	var hardware types.HardWare
+	logger.Info("=========================Deploy hardware from DB", "hardware_str", deployInfo.Hardware, "task_id", task.ID)
 	if err := json.Unmarshal([]byte(deployInfo.Hardware), &hardware); err != nil {
 		logger.Error("Deploy hardware is invalid format", "hardware", deployInfo.Hardware, "task_id", task.ID)
 		return nil, fmt.Errorf("failed to parse deploy hardware: %w", err)
 	}
+	logger.Info("=========================Parsed hardware object", "hardware_obj", hardware)
 
 	envMap, err := a.makeDeployEnv(ctx, hardware, accessToken, deployInfo, engineArgsTemplates, toolCallParsers, repoInfo)
 	if err != nil {

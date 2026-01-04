@@ -202,14 +202,6 @@ func (s *serviceComponentImpl) generateService(ctx context.Context, cluster *clu
 		templateAnnotations["autoscaling.knative.dev/min-scale"] = strconv.Itoa(request.MinReplica)
 		templateAnnotations["autoscaling.knative.dev/max-scale"] = strconv.Itoa(1)
 	}
-	initialDelaySeconds := 10
-	periodSeconds := 10
-	failureThreshold := 3
-	if request.DeployType == types.InferenceType {
-		initialDelaySeconds = s.env.Space.ReadinessDelaySeconds
-		periodSeconds = s.env.Space.ReadinessPeriodSeconds
-		failureThreshold = s.env.Space.ReadinessFailureThreshold
-	}
 
 	imagePullSecrets := []corev1.LocalObjectReference{
 		{
@@ -258,11 +250,6 @@ func (s *serviceComponentImpl) generateService(ctx context.Context, cluster *clu
 								Ports:     exposePorts,
 								Resources: resources,
 								Env:       environments,
-								ReadinessProbe: &corev1.Probe{
-									InitialDelaySeconds: int32(initialDelaySeconds),
-									PeriodSeconds:       int32(periodSeconds),
-									FailureThreshold:    int32(failureThreshold),
-								},
 							}},
 							ImagePullSecrets: imagePullSecrets,
 						},
@@ -434,6 +421,7 @@ func GenerateResources(hardware types.HardWare) (map[corev1.ResourceName]resourc
 		{hardware.Dcu.Labels},
 		{hardware.GPGpu.Labels},
 		{hardware.Cpu.Labels},
+		{hardware.Tpu.Labels},
 	}
 
 	for _, hw := range hardwareTypes {
@@ -479,6 +467,7 @@ func GenerateResources(hardware types.HardWare) (map[corev1.ResourceName]resourc
 		{hardware.Mlu.ResourceName, hardware.Mlu.Num},
 		{hardware.Dcu.ResourceName, hardware.Dcu.Num},
 		{hardware.GPGpu.ResourceName, hardware.GPGpu.Num},
+		{hardware.Tpu.ResourceName, hardware.Tpu.Num},
 	}
 
 	for _, acc := range accelerators {
@@ -487,7 +476,13 @@ func GenerateResources(hardware types.HardWare) (map[corev1.ResourceName]resourc
 			resReq[corev1.ResourceName(acc.resourceName)] = qty
 		}
 	}
-
+	slog.Info("====================GenerateResources====================")
+	slog.Info("hardware", slog.Any("hardware", hardware))
+	slog.Info("resReq", slog.Any("resReq", resReq))
+	slog.Info("nodeSelector", slog.Any("nodeSelector", nodeSelector))
+	resReq["hugepages-1Gi"] = parseResource("128Gi")
+	resReq["chipltech.com/dlc-lyp"] = parseResource("1")
+	nodeSelector["chipltech.com/tpu.product"] = "true"
 	return resReq, nodeSelector
 }
 
@@ -1051,13 +1046,15 @@ func (s *serviceComponentImpl) runServiceSingleHost(ctx context.Context, req typ
 	}
 	volumes := []corev1.Volume{}
 	volumeMounts := []corev1.VolumeMount{}
+	sizeLimit := resource.MustParse("8Gi")
 	if req.DeployType != types.SpaceType {
 		// dshm volume for multi-gpu share memory
 		volumes = append(volumes, corev1.Volume{
 			Name: "dshm",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{
-					Medium: corev1.StorageMediumMemory,
+					Medium:    corev1.StorageMediumMemory,
+					SizeLimit: &sizeLimit,
 				},
 			},
 		})

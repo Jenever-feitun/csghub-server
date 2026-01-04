@@ -135,9 +135,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-        restart: true
     environment:
-      RUNNING_IN_DOCKER: true
+      RUNNING_IN_DOCKER: "true"
     volumes:
       - ./data/casdoor/conf:/conf
     restart: always
@@ -148,9 +147,13 @@ services:
       retries: 30
     networks:
       - my_ce_network
+    ports:
+      - 8000:8000
 
   starhub_server:
     image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/csghub-server:latest
+    environment:
+      STARHUB_SERVER_NOTIFIER_HOST: "http://notification_server"
     depends_on:
       - postgres
       - gitaly
@@ -167,7 +170,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
@@ -184,8 +187,8 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - ./data/casdoor/:/starhub-bin/casdoor/:r
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/casdoor/:/starhub-bin/casdoor/:ro
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
@@ -203,7 +206,7 @@ services:
     ports:
       - "8086:8086"
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
@@ -226,7 +229,7 @@ services:
     ports:
       - "8093:8093"
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
@@ -243,7 +246,7 @@ services:
     ports:
       - "8095:8095"
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
@@ -260,25 +263,25 @@ services:
     ports:
       - "8083:8083"
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
     networks:
       - my_ce_network
 
   # Uncomment starhub_runner when you have Kubernetes config file
-  # starhub_runner:
-  #   image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/csghub-server:latest
-  #   entrypoint:
-  #     - /starhub-bin/starhub
-  #     - deploy
-  #     - runner
-  #     - --config=/starhub-bin/config/config.toml
-  #   ports:
-  #     - "8082:8082"
-  #   volumes:
-  #     - ./data/kube:/root/.kube:r
-  #     - ./data/config.toml:/starhub-bin/config/config.toml:r
-  #   networks:
-  #     - my_ce_network
+  starhub_runner:
+    image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/csghub-server:latest
+    entrypoint:
+      - /starhub-bin/starhub
+      - deploy
+      - runner
+      - --config=/starhub-bin/config/config.toml
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./data/kube:/root/.kube:ro
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
+    networks:
+      - my_ce_network
 
   temporal_worker:
     image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/csghub-server:latest
@@ -289,7 +292,253 @@ services:
       - --config=/starhub-bin/config/config.toml
     restart: always
     volumes:
-      - ./data/config.toml:/starhub-bin/config/config.toml:r
+      - ./data/config.toml:/starhub-bin/config/config.toml:ro
+    networks:
+      - my_ce_network
+
+  csghub:
+    image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/omnibus-csghub:v1.14.0-ee
+    environment:
+      CSGHUB_PORTAL_STARHUB_BASE_URL: "http://starhub_server:8080"
+      CSGHUB_OMNIBUS_CONFIG: |
+        csghub:
+          external_url: "http://opencsg.chipltech.com"
+        portal:
+          enable: true
+          starhub_api_key: "f3a7b9c1d6e5f8e2a1b5d4f9e6a2b8d7c3a4e2b1d9f6e7a8d2c5a7b4c1e3f5b8a1d4f9b7d6e2f8a5d3b1e7f9c6a8b2d1e4f7d5b6e9f2a4b3c8e1d7f995hd82hf"
+          login_url: "http://iam.chipltech.com/login/oauth/authorize?client_id=bcf98d75f5e07ebb8c21&response_type=code&redirect_uri=http://opencsg.chipltech.com/api/v1/callback/casdoor&scope=read&state=casdoor"
+          s3:
+            endpoint: "minio:9000"
+            secret_key: "Password_123"
+            access_key: "admin"
+            region: "cn-beijing"
+          postgresql:
+            name: "starhub_server"
+            host: "postgres"
+            port: 5432
+            user: "postgres"
+            password: "postgres"
+        redis:
+          enable: false
+        postgresql:
+          enable: false
+        minio:
+          enable: false
+        prometheus:
+          enable: false
+        loki:
+          enable: false
+        mirror_repo:
+          enable: false
+        registry:
+          enable: false
+        accounting:
+          enable: false
+        nats:
+          enable: false
+        temporal:
+          enable: false
+        notifier:
+          enable: false
+        server:
+          enable: false
+        dataviewer:
+          enable: false
+        user:
+          enable: false
+        temporal_worker:
+          enable: false
+        gitaly:
+          enable: false
+        mirror_lfs:
+          enable: false
+        gitlab_shell:
+          enable: false
+        rproxy:
+          enable: false
+        casdoor:
+          enable: false
+    ports:
+      - '8090:8090'
+    volumes:
+      - ./csghub/etc:/etc/csghub
+      - ./csghub/logs:/var/log/csghub
+      - ./csghub/data:/var/opt/csghub
+      - ./csghub/.kube:/etc/csghub/.kube
+    restart: always
+    networks:
+      - my_ce_network
+    depends_on:
+      - postgres
+      - starhub_server
+      - minio
+
+  gitlab_shell:
+    image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/omnibus-csghub:v1.14.0-ce
+    environment:
+      CSGHUB_OMNIBUS_CONFIG: |
+        csghub:
+          enable: false
+        redis:
+          enable: false
+        postgresql:
+          enable: false
+        minio:
+          enable: false
+        prometheus:
+          enable: false
+        loki:
+          enable: false
+        mirror_repo:
+          enable: false
+        registry:
+          enable: false
+        accounting:
+          enable: false
+        nats:
+          enable: false
+        temporal:
+          enable: false
+        notifier:
+          enable: false
+        server:
+          enable: false
+        dataviewer:
+          enable: false
+        user:
+          enable: false
+        temporal_worker:
+          enable: false
+        gitaly:
+          enable: false
+        mirror_lfs:
+          enable: false
+        gitlab_shell:
+          enable: true
+        rproxy:
+          enable: false
+        casdoor:
+          enable: false
+    restart: always
+    networks:
+      - my_ce_network
+    depends_on:
+      - gitaly
+      - starhub_server
+
+  starhub_server_ee:
+    image: opencsg-registry.cn-beijing.cr.aliyuncs.com/opencsghq/omnibus-csghub:v1.14.0-ee
+    environment:
+      CSGHUB_PORTAL_STARHUB_BASE_URL: "http://starhub_server:8080"
+      CSGHUB_OMNIBUS_CONFIG: |
+        csghub:
+          enable: false
+        redis:
+          enable: false
+        postgresql:
+          enable: false
+        minio:
+          enable: false
+        prometheus:
+          enable: false
+        loki:
+          enable: false
+        mirror_repo:
+          enable: false
+        registry:
+          enable: false
+        accounting:
+          enable: false
+        nats:
+          enable: false
+        temporal:
+          enable: false
+        notifier:
+          enable: false
+        server:
+          enable: true
+          api_server:
+            port: 8080
+            public_domain: "http://opencsg.chipltech.com"
+          s3:
+            endpoint: "minio:9000"
+            secret_key: "Password_123"
+            access_key: "admin"
+            region: "cn-beijing"
+          postgresql:
+            name: "starhub_server"
+            host: "postgres"
+            port: 5432
+            user: "postgres"
+            password: "postgres"
+          redis:
+            endpoint: "redis:6379"
+          nats:
+            url: "nats://natsadmin:gsSl9c919B8dc5FAcrvT8v4J7ck90w@natsmaster:4222"
+            msg_fetch_timeout_in_sec: 5
+          casdoor:
+            client_id: "bcf98d75f5e07ebb8c21"
+            client_secret: "33bd85106818efd90c57fb35ffc787aabbff6f7a"
+            endpoint: "http://casdoor:8000"
+            certificate: "/starhub-bin/casdoor/token_jwt_key.pem"
+            organization_name: "OpenCSG"
+            application_name: "CSGHub"
+          user:
+            host: "http://user_server"
+            port: 8088
+            signin_success_redirect_url: "http://opencsg.chipltech.com/server/callback"
+          workflow:
+            endpoint: "temporal:7233"
+          temporal:
+            host: "http://temporal"
+            port: 7233
+          accounting:
+            host: "http://account_server"
+            port: 8086
+            charging_enable: true
+          space:
+            builder_endpoin: "http://starhub_runner:8082"
+            runner_endpoint: "http://starhub_runner:8082"
+            runner_server_port: 8082
+            rproxy_server_port: 8083
+            deploy_timeout_in_min: 30
+            readness_delay_seconds: 120
+            readness_period_seconds: 10
+            readness_failure_threshold: 3
+            pypi_index_url: "https://pypi.tuna.tsinghua.edu.cn/simple"
+          git_server:
+            type:  "gitaly"
+            username: "root"
+            password: "password123"
+            timeout_sec: 5
+          gitaly_server:
+            address: "tcp://gitaly:8075"
+            storge: "default"
+            token: "abc123secret"
+          jwt:
+            signing_key: "signing-key"
+            valid_hour: 24
+          event:
+            sync_interval: 1
+        dataviewer:
+          enable: false
+        user:
+          enable: false
+        temporal_worker:
+          enable: false
+        gitaly:
+          enable: false
+        mirror_lfs:
+          enable: false
+        gitlab_shell:
+          enable: false
+        rproxy:
+          enable: false
+        casdoor:
+          enable: false
+    ports:
+      - '8080:8080'
+    restart: always
     networks:
       - my_ce_network
       

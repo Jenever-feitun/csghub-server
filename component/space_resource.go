@@ -70,11 +70,13 @@ func (c *spaceResourceComponentImpl) Index(ctx context.Context, req *types.Space
 			slog.Error("failed to get cluster by id", slog.String("clusterID", clusterID), slog.Any("error", err))
 			continue
 		}
+		slog.Info("================clusterResources=======================", slog.Any("clusterResources", clusterResources))
 
 		for _, r := range databaseSpaceResources {
 			var isAvailable bool
 			var hardware types.HardWare
 			err := json.Unmarshal([]byte(r.Resources), &hardware)
+			slog.Info("================hardware=======================", slog.Any("hardware", hardware))
 			if err != nil {
 				slog.Error("invalid hardware setting", slog.Any("error", err), slog.String("hardware", r.Resources))
 			} else {
