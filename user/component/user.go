@@ -2,7 +2,9 @@ package component
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -966,12 +968,32 @@ func (c *userComponentImpl) Signin(ctx context.Context, code, state string) (*ty
 		}
 		// update user login time asynchronously
 		go func() {
+			// use a new context as the request context may be cancelled
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 			dbu.LastLoginAt = time.Now().Format("2006-01-02 15:04:05")
 			err := c.userStore.Update(ctx, dbu, "")
 			if err != nil {
 				slog.ErrorContext(ctx, "failed to update user login time", "error", err, "username", dbu.Username)
 			}
 		}()
+	}
+	// delete old casdoor token, and create new one
+	_ = c.tokenc.Delete(ctx, &types.DeleteUserTokenRequest{
+		Username:    dbu.Username,
+		TokenName:   "casdoor_token",
+		Application: types.AccessTokenAppCSGHub,
+	})
+	// Hash the token to avoid exceeding DB index size limit
+	hashedToken := hashToken(casToken.AccessToken)
+	_, err = c.tokenc.Create(ctx, &types.CreateUserTokenRequest{
+		Username:    dbu.Username,
+		TokenName:   "casdoor_token",
+		Token:       hashedToken,
+		Application: types.AccessTokenAppCSGHub,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create casdoor user access token", "error", err, slog.Any("username", dbu.Username))
 	}
 	hubToken, signed, err := c.jwtc.GenerateToken(ctx, types.CreateJWTReq{
 		UUID: dbu.UUID,
@@ -981,6 +1003,13 @@ func (c *userComponentImpl) Signin(ctx context.Context, code, state string) (*ty
 	}
 
 	return hubToken, signed, nil
+}
+
+// hashToken generates a SHA256 hash of the given token, returning a 64-char hex string.
+// This is used to store long tokens (like Casdoor JWTs) that exceed DB index limits.
+func hashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }
 
 func (c *userComponentImpl) genUniqueName() (string, error) {

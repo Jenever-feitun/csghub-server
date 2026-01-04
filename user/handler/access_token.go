@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"opencsg.com/csghub-server/common/errorx"
@@ -284,6 +285,10 @@ func (h *AccessTokenHandler) Get(ctx *gin.Context) {
 	req.Application = ctx.Query("app")
 	resp, err := h.c.Check(ctx, &req)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			httpbase.UnauthorizedError(ctx, err)
+			return
+		}
 		slog.ErrorContext(ctx.Request.Context(), "Failed to check user access token", slog.Any("error", err), slog.Any("req", req))
 		httpbase.ServerError(ctx, err)
 		return
